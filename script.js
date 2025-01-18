@@ -1,7 +1,4 @@
-const database = {
-    users: {},
-};
-
+const usersCollection = db.collection('users');
 // User Registration
 document.getElementById('registrationForm').addEventListener('submit', function(event) {
     event.preventDefault();
@@ -59,3 +56,51 @@ document.getElementById('bookCylinder').addEventListener('click', function() {
         document.getElementById('bookingMessage').textContent = 'No barrels left to book.';
     }
 });
+async function registerUser(name, email, password) {
+    try {
+        await usersCollection.doc(email).set({
+            name,
+            password,
+            barrels: 12,
+            bookingHistory: []
+        });
+        document.getElementById('registerMessage').textContent = 'Registration successful!';
+    } catch (error) {
+        console.error('Error registering user:', error);
+        document.getElementById('registerMessage').textContent = 'Registration failed.';
+    }
+}
+
+// Login User
+async function loginUser(email, password) {
+    try {
+        const userDoc = await usersCollection.doc(email).get();
+        if (userDoc.exists && userDoc.data().password === password) {
+            document.getElementById('loginMessage').textContent = 'Login successful!';
+            showBookingSection(email);
+        } else {
+            document.getElementById('loginMessage').textContent = 'Invalid credentials.';
+        }
+    } catch (error) {
+        console.error('Error logging in:', error);
+    }
+}
+
+// Book a Cylinder
+async function bookCylinder(email) {
+    try {
+        const userDoc = await usersCollection.doc(email).get();
+        if (userDoc.exists && userDoc.data().barrels > 0) {
+            const bookingDate = new Date().toLocaleString();
+            await usersCollection.doc(email).update({
+                barrels: firebase.firestore.FieldValue.increment(-1),
+                bookingHistory: firebase.firestore.FieldValue.arrayUnion(bookingDate)
+            });
+            document.getElementById('bookingMessage').textContent = 'Cylinder booked successfully!';
+        } else {
+            document.getElementById('bookingMessage').textContent = 'No barrels left to book.';
+        }
+    } catch (error) {
+        console.error('Error booking cylinder:', error);
+    }
+}
